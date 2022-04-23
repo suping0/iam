@@ -83,6 +83,8 @@ type ConfigFlags struct {
 // to a .iamconfig file, loading rules, and config flag overrides.
 // Expects the AddFlags method to have been called.
 func (f *ConfigFlags) ToRESTConfig() (*rest.Config, error) {
+	// 在 toRawIAMConfigLoader 函数内部，通过 viper.Unmarshal
+	// 将viper中存储的配置解析到 clientcmd.Config 类型的结构体变量中。
 	return f.ToRawIAMConfigLoader().ClientConfig()
 }
 
@@ -99,6 +101,7 @@ func (f *ConfigFlags) ToRawIAMConfigLoader() clientcmd.ClientConfig {
 
 func (f *ConfigFlags) toRawIAMConfigLoader() clientcmd.ClientConfig {
 	config := clientcmd.NewConfig()
+	// viper中存储的配置，是在cobra命令启动时通过LoadConfig函数加载的
 	if err := viper.Unmarshal(&config); err != nil {
 		panic(err)
 	}

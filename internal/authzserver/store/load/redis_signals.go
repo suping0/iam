@@ -62,6 +62,10 @@ func startPubSubLoop() {
 	}
 }
 
+// handleRedisEvent函数中，会将消息解析为Notification类型的消息，并判断Command的值。
+// 如果是NoticePolicyChanged或NoticeSecretChanged，就会向 reloadQueue channel中写入一个回调函数。
+// 因为我们不需要用回调函数做任何事情，所以这里回调函数是nil。
+// reloadQueue 主要用来告诉程序，需要完成一次密钥和策略的同步。
 func handleRedisEvent(v interface{}, handled func(NotificationCommand), reloaded func()) {
 	message, ok := v.(*redis.Message)
 	if !ok {

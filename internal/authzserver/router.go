@@ -15,7 +15,9 @@ import (
 )
 
 func installHandler(g *gin.Engine) *gin.Engine {
+	// 加载cache认证中间件来使用cache认证策略
 	auth := newCacheAuth()
+	// auth.AuthFunc() cache认证策略实现
 	g.NoRoute(auth.AuthFunc(), func(c *gin.Context) {
 		core.WriteResponse(c, errors.WithCode(code.ErrPageNotFound, "page not found."), nil)
 	})

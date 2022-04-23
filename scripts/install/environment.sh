@@ -7,9 +7,14 @@
 # IAM 项目源码根目录
 IAM_ROOT=$(dirname "${BASH_SOURCE[0]}")/../..
 
+# :- 定义变量的默认值
+# ${var:-string} 若变量 var 为空或者未定义, 则用在命令行中用 string 来替换 ${var:-string}
+# 否则变量 var 不为空时, 则用变量 var 的值来替换 ${var:-string}
 # 生成文件存放目录
 LOCAL_OUTPUT_ROOT="${IAM_ROOT}/${OUT_DIR:-_output}"
 
+#readonly
+#标记shell变量或函数为只读
 # 设置统一的密码，方便记忆
 readonly PASSWORD=${PASSWORD:-'iam59!z$'}
 

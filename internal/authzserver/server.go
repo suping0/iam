@@ -139,12 +139,16 @@ func (s *authzServer) initialize() error {
 		return errors.Wrap(err, "get store instance failed")
 	}
 	// cron to reload all secrets and policies from iam-apiserver
+	/// 启动一个Load服务，用于秘钥和策略的缓存。
 	load.NewLoader(ctx, storeIns).Start()
 
 	// start analytics service
+	// 启动一个Analytics服务, 用于日志缓存
 	if s.analyticsOptions.Enable {
 		analyticsStore := storage.RedisCluster{KeyPrefix: RedisKeyPrefix}
+		// NewAnalytics函数会根据配置，创建一个Analytics实例
 		analyticsIns := analytics.NewAnalytics(s.analyticsOptions, &analyticsStore)
+		// 启动一个workerpoll 进程从recordsChan中读取数据，并在数据达到一定阈值之后，批量写入Redis中
 		analyticsIns.Start()
 		s.gs.AddShutdownCallback(shutdown.ShutdownFunc(func(string) error {
 			analyticsIns.Stop()

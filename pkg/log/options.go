@@ -88,6 +88,7 @@ func (o *Options) Validate() []error {
 }
 
 // AddFlags adds flags for log to the specified FlagSet object.
+// AddFlags方法可以将Options的各个字段追加到传入的pflag.FlagSet变量中
 func (o *Options) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.Level, flagLevel, o.Level, "Minimum log output `LEVEL`.")
 	fs.BoolVar(&o.DisableCaller, flagDisableCaller, o.DisableCaller, "Disable output of caller information in the log.")
@@ -107,6 +108,7 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.Name, flagName, o.Name, "The name of the logger.")
 }
 
+// String方法可以将Options的值以JSON格式字符串返回。
 func (o *Options) String() string {
 	data, _ := json.Marshal(o)
 
@@ -114,6 +116,7 @@ func (o *Options) String() string {
 }
 
 // Build constructs a global zap logger from the Config and Options.
+// Build方法可以根据Options构建一个全局的Logger
 func (o *Options) Build() error {
 	var zapLevel zapcore.Level
 	if err := zapLevel.UnmarshalText([]byte(o.Level)); err != nil {

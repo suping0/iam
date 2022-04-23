@@ -66,7 +66,7 @@ func NewAnalytics(options *AnalyticsOptions, store storage.AnalyticsHandler) *An
 	recordsBufferSize := options.RecordsBufferSize
 	workerBufferSize := recordsBufferSize / uint64(ps)
 	log.Debug("Analytics pool worker buffer size", log.Uint64("workerBufferSize", workerBufferSize))
-
+	// recordsChan 存放的数据类型为AnalyticsRecord，缓冲区的大小为 recordsBufferSize （通过 --analytics.records-buffer-size 选项指定）。
 	recordsChan := make(chan *AnalyticsRecord, recordsBufferSize)
 
 	return &Analytics{
@@ -90,6 +90,7 @@ func (r *Analytics) Start() {
 
 	// start worker pool
 	atomic.SwapUint32(&r.shouldStop, 0)
+	// options.PoolSize由命令行参数 --analytics.pool-size 指定，代表worker 的个数，默认 50
 	for i := 0; i < r.poolSize; i++ {
 		r.poolWg.Add(1)
 		go r.recordWorker()
@@ -112,6 +113,7 @@ func (r *Analytics) Stop() {
 }
 
 // RecordHit will store an AnalyticsRecord in Redis.
+// 可以通过RecordHit函数，向recordsChan 中写入 AnalyticsRecord 类型的数据
 func (r *Analytics) RecordHit(record *AnalyticsRecord) error {
 	// check if we should stop sending records 1st
 	if atomic.LoadUint32(&r.shouldStop) > 0 {
@@ -125,11 +127,13 @@ func (r *Analytics) RecordHit(record *AnalyticsRecord) error {
 	return nil
 }
 
+// recordWorker函数会从 recordsChan 中读取授权日志并存入recordsBuffer中
 func (r *Analytics) recordWorker() {
 	defer r.poolWg.Done()
 
 	// this is buffer to send one pipelined command to redis
 	// use r.recordsBufferSize as cap to reduce slice re-allocations
+	// options.RecordsBufferSize由命令行参数 --analytics.records-buffer-size 指定，代表缓存的授权日志消息数。也就是说，我们把缓存的记录平均分配给所有的worker。
 	recordsBuffer := make([][]byte, 0, r.workerBufferSize)
 
 	// read records from channel and process
@@ -147,7 +151,7 @@ func (r *Analytics) recordWorker() {
 			}
 
 			// we have new record - prepare it and add to buffer
-
+			// 为了提高传输速率，这里将日志内容编码为msgpack格式后再传输。
 			if encoded, err := msgpack.Marshal(record); err != nil {
 				log.Errorf("Error encoding analytics data: %s", err.Error())
 			} else {
@@ -163,6 +167,7 @@ func (r *Analytics) recordWorker() {
 			readyToSend = true
 		}
 
+		// 当recordsBuffer存满或者达到投递最大时间后，调用 r.Store.AppendToSetPipelined(analyticsKeyName, recordsBuffer) 将记录批量发送给Redis，
 		// send data to Redis and reset buffer
 		if len(recordsBuffer) > 0 && (readyToSend || time.Since(lastSentTS) >= recordsBufferForcedFlushInterval) {
 			r.store.AppendToSetPipelined(analyticsKeyName, recordsBuffer)

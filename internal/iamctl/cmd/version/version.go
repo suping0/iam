@@ -81,7 +81,8 @@ func (o *Options) Complete(f cmdutil.Factory, cmd *cobra.Command) error {
 	if o.ClientOnly {
 		return nil
 	}
-
+	// 如果要创建RESTful API客户端和SDK的客户端，需要调用 f.ToRESTConfig() 函数返回 *github.com/marmotedu/marmotedu-sdk-go/rest.Config 类型的配置变量，
+	// 然后再基于 rest.Config 类型的配置变量创建客户端。
 	o.client, err = f.RESTClient()
 	if err != nil {
 		return err
@@ -111,6 +112,7 @@ func (o *Options) Run() error {
 	versionInfo.ClientVersion = &clientVersion
 
 	if !o.ClientOnly && o.client != nil {
+		// 可以通过下面的方式访问RESTful API接口
 		// Always request fresh data from the server
 		if err := o.client.Get().AbsPath("/version").Do(context.TODO()).Into(&serverVersion); err != nil {
 			return err

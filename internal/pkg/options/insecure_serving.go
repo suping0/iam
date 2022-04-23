@@ -31,6 +31,7 @@ func NewInsecureServingOptions() *InsecureServingOptions {
 }
 
 // ApplyTo applies the run options to the method receiver and returns self.
+// c *server.Config是HTTP服务器的配置，s *InsecureServingOptions是应用配置。
 func (s *InsecureServingOptions) ApplyTo(c *server.Config) error {
 	c.InsecureServing = &server.InsecureServingInfo{
 		Address: net.JoinHostPort(s.BindAddress, strconv.Itoa(s.BindPort)),

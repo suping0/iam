@@ -14,7 +14,7 @@ tools.install: $(addprefix tools.install., $(TOOLS))
 .PHONY: tools.install.%
 tools.install.%:
 	@echo "===========> Installing $*"
-	@$(MAKE) install.$*
+	@$(MAKE) install.$* # $*用来表示文件后缀前的文件名
 
 tools.verify.%:
 	@if ! which $* &>/dev/null; then $(MAKE) tools.install.$*; fi

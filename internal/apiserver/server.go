@@ -48,7 +48,7 @@ type ExtraConfig struct {
 func createAPIServer(cfg *config.Config) (*apiServer, error) {
 	gs := shutdown.New()
 	gs.AddShutdownManager(posixsignal.NewPosixSignalManager())
-
+	// 在创建配置后，会先分别进行配置补全，再使用补全后的配置创建Web服务实例，
 	genericConfig, err := buildGenericConfig(cfg)
 	if err != nil {
 		return nil, err
@@ -58,11 +58,14 @@ func createAPIServer(cfg *config.Config) (*apiServer, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	// 首先调用Complete/complete函数补全配置，再基于补全后的配置，New一个HTTP/GRPC服务实例。
 	genericServer, err := genericConfig.Complete().New()
 	if err != nil {
 		return nil, err
 	}
+	// 这里有个设计技巧：
+	// complete函数返回的是一个*completedExtraConfig类型的实例，在创建GRPC实例时，是调用completedExtraConfig结构体提供的New方法，
+	// 这种设计方法可以确保我们创建的GRPC实例一定是基于complete之后的配置（completed）。
 	extraServer, err := extraConfig.complete().New()
 	if err != nil {
 		return nil, err

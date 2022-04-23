@@ -41,6 +41,7 @@ ifeq (${BINS},)
   $(error Could not determine BINS, set ROOT_DIR or run in source dir)
 endif
 
+# EXCLUDE_TEST 必须要指定测试的包
 EXCLUDE_TESTS=github.com/marmotedu/iam/test github.com/marmotedu/iam/pkg/log github.com/marmotedu/iam/third_party github.com/marmotedu/iam/internal/pump/storage github.com/marmotedu/iam/internal/pump github.com/marmotedu/iam/internal/pkg/logger
 
 .PHONY: go.build.verify
@@ -75,6 +76,11 @@ go.lint: tools.verify.golangci-lint
 	@echo "===========> Run golangci to lint source codes"
 	@golangci-lint run -c $(ROOT_DIR)/.golangci.yaml $(ROOT_DIR)/...
 
+# 运行make test执行测试用例。
+# go test时设置了超时时间、静态检查，开启了代码覆盖率检查，覆盖率测试数据保存在了coverage.out文件中。
+# 过滤掉了一些不需要测试的包，这些包配置在EXCLUDE_TESTS变量中。
+# go-junit-report将go test的结果转化成了xml格式的报告文件，该报告文件会被一些CI系统，例如Jenkins拿来解析并展示结果。
+# 生成了coverage.html文件，该文件可以存放在制品库中
 .PHONY: go.test
 go.test: tools.verify.go-junit-report
 	@echo "===========> Run unit test"
@@ -82,9 +88,16 @@ go.test: tools.verify.go-junit-report
 		-timeout=10m -short -v `go list ./...|\
 		egrep -v $(subst $(SPACE),'|',$(sort $(EXCLUDE_TESTS)))` 2>&1 | \
 		tee >(go-junit-report --set-exit-code >$(OUTPUT_DIR)/report.xml)
+	# Mock的代码是不需要编写测试用例的，为了避免影响项目的单元测试覆盖率，
+	# 需要将Mock代码的单元测试覆盖率数据从coverage.out文件中删除掉，
+    # go.test规则通过以下命令删除这些无用的数据：
 	@sed -i '/mock_.*.go/d' $(OUTPUT_DIR)/coverage.out # remove mock_.*.go files from test coverage
 	@$(GO) tool cover -html=$(OUTPUT_DIR)/coverage.out -o $(OUTPUT_DIR)/coverage.html
 
+# 通过make cover来进行单元测试覆盖率测试。
+# 上述目标依赖go.test，也就是说执行单元测试覆盖率目标之前，会先进行单元测试，然后使用单元测试产生的覆盖率数据coverage.out计算出总的单元测试覆盖率，
+# 这里是通过coverage.awk脚本来计算的。
+# $(COVERAGE) 是在common.mk定义的
 .PHONY: go.test.cover
 go.test.cover: go.test
 	@$(GO) tool cover -func=$(OUTPUT_DIR)/coverage.out | \

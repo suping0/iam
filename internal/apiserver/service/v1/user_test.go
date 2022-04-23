@@ -20,6 +20,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
+	// 在执行测试前创建单例对象
 	_, _ = fake.GetFakeFactoryOr()
 	os.Exit(m.Run())
 }

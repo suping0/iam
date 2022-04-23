@@ -4,6 +4,7 @@
 # Use of this source code is governed by a MIT style
 # license that can be found in the LICENSE file.
 
+#此处 : 只是单纯的占位符
 : << EOF
 API 性能测试脚本，会自动执行 wrk 命令，采集数据、分析数据并调用 gnuplot 画图
 
@@ -28,9 +29,12 @@ source "${iamroot}/scripts/lib/color.sh"
 
 # Set wrk options
 iam::wrk::setup() {
+#  测试时间为30s
   duration="300s"
+# 定义并发 wrktest.sh默认会测试多个并发下的API性能，
   #concurrent="200 500 1000 3000 5000 10000 15000 20000 25000 50000 100000 200000 500000 1000000"
   concurrent="200 500 1000 3000 5000 10000 15000 20000 25000 50000"
+# 定义线程 wrktest.sh会根据CPU的核数自动计算出适合的wrk启动线程数（-t）：CPU核数 * 3。
   threads=$((3 * `grep -c processor /proc/cpuinfo`))
   cmd="wrk -t${threads} -d${duration} -T30s --latency"
 }
@@ -43,13 +47,13 @@ iam::wrk::usage()
 Usage: $0 [OPTION] [diff] URL
 Performance automation test script.
 
-  URL                    HTTP request url, like: http://127.0.0.1:8080/healthz
-  diff                   Compare two performance test results
+  URL                    HTTP request url, like: http://127.0.0.1:8080/healthz 需要测试的API接口。
+  diff                   Compare two performance test results 如果比较两次测试的结果，需要执行wrktest.sh diff 。
 
 OPTIONS:
-  -h                     Usage information
-  -n                     Performance test task name, default: apiserver
-  -d                     Directory used to store performance data and gnuplot graphic, default: _output/wrk
+  -h                     Usage information 打印帮助信息。
+  -n                     Performance test task name, default: apiserver 本次测试的任务名，wrktest.sh会根据任务名命名生成的文件。
+  -d                     Directory used to store performance data and gnuplot graphic, default: _output/wrk 输出文件存放目录。
 
 Reprot bugs to <colin404@foxmail.com>.
 EOF

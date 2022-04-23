@@ -47,6 +47,7 @@ func NewCacheStrategy(get func(kid string) (Secret, error)) CacheStrategy {
 // AuthFunc defines cache strategy as the gin authentication middleware.
 func (cache CacheStrategy) AuthFunc() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// 第一步，从Authorization: Bearer XX.YY.ZZ请求头中获取XX.YY.ZZ，XX.YY.ZZ即为JWT Token。
 		header := c.Request.Header.Get("Authorization")
 		if len(header) == 0 {
 			core.WriteResponse(c, errors.WithCode(code.ErrMissingHeader, "Authorization header cannot be empty."), nil)
@@ -56,33 +57,41 @@ func (cache CacheStrategy) AuthFunc() gin.HandlerFunc {
 		}
 
 		var rawJWT string
+		// 解析http header, 得到jwt
 		// Parse the header to get the token part.
 		fmt.Sscanf(header, "Bearer %s", &rawJWT)
 
-		// Use own validation logic, see below
+		// 第二步，调用github.com/dgrijalva/jwt-go包提供的ParseWithClaims函数，该函数会依次执行下面四步操作。
+		// Use own validation logic, see below 验证逻辑
 		var secret Secret
-
+		// claims JWT中payload的字段
 		claims := &jwt.MapClaims{}
+		// 调用ParseUnverified函数，依次执行以下操作：解析token并验证
+		// 调用传入的func(token *jwt.Token)  获取密钥
 		// Verify the token
-		parsedT, err := jwt.ParseWithClaims(rawJWT, claims, func(token *jwt.Token) (interface{}, error) {
-			// Validate the alg is HMAC signature
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-			}
+		parsedT, err := jwt.ParseWithClaims(rawJWT, claims,
+			// 可以看到，keyFunc接受 *Token 类型的变量。返回JWT的Salt
+			func(token *jwt.Token) (interface{}, error) {
+				// Validate the alg is HMAC signature
+				if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+					return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+				}
+				// 获取Token Header中的kid，kid即为密钥ID：secretID。
+				kid, ok := token.Header["kid"].(string)
+				if !ok {
+					return nil, ErrMissingKID
+				}
 
-			kid, ok := token.Header["kid"].(string)
-			if !ok {
-				return nil, ErrMissingKID
-			}
-
-			var err error
-			secret, err = cache.get(kid)
-			if err != nil {
-				return nil, ErrMissingSecret
-			}
-
-			return []byte(secret.Key), nil
-		}, jwt.WithAudience(AuthzAudience))
+				var err error
+				// 接着，调用cache.get(kid)获取密钥secretKey。cache.get函数即为getSecretFunc
+				secret, err = cache.get(kid)
+				if err != nil {
+					return nil, ErrMissingSecret
+				}
+				// getSecretFunc函数会根据kid，从内存中查找密钥信息，密钥信息中包含了secretKey。
+				return []byte(secret.Key), nil
+			},
+			jwt.WithAudience(AuthzAudience))
 		if err != nil || !parsedT.Valid {
 			core.WriteResponse(c, errors.WithCode(code.ErrSignatureInvalid, err.Error()), nil)
 			c.Abort()
@@ -90,6 +99,7 @@ func (cache CacheStrategy) AuthFunc() gin.HandlerFunc {
 			return
 		}
 
+		// 第三步，调用KeyExpired，验证secret是否过期。secret信息中包含过期时间，你只需要拿该过期时间和当前时间对比就行。
 		if KeyExpired(secret.Expires) {
 			tm := time.Unix(secret.Expires, 0).Format("2006-01-02 15:04:05")
 			core.WriteResponse(c, errors.WithCode(code.ErrExpired, "expired at: %s", tm), nil)
@@ -98,6 +108,7 @@ func (cache CacheStrategy) AuthFunc() gin.HandlerFunc {
 			return
 		}
 
+		// 第四步，设置HTTP Headerusername: colin。
 		c.Set(middleware.UsernameKey, secret.Username)
 		c.Next()
 	}

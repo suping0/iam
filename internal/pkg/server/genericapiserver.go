@@ -90,8 +90,10 @@ func (s *GenericAPIServer) Setup() {
 	}
 }
 
+// 安装 Gin 中间件
 // InstallMiddlewares install generic middlewares.
 func (s *GenericAPIServer) InstallMiddlewares() {
+	// 安装了两个默认的中间件： RequestID 和 Context
 	// necessary middlewares
 	s.Use(middleware.RequestID())
 
@@ -217,6 +219,8 @@ func (s *GenericAPIServer) Close() {
 
 // ping pings the http server to make sure the router is working.
 func (s *GenericAPIServer) ping(ctx context.Context) error {
+	// 当 HTTP 服务监听在所有网卡时，请求 IP 为 127.0.0.1；
+	// 当 HTTP 服务监听在指定网卡时，我们需要请求该网卡的 IP 地址。
 	url := fmt.Sprintf("http://%s/healthz", s.InsecureServingInfo.Address)
 	if strings.Contains(s.InsecureServingInfo.Address, "0.0.0.0") {
 		url = fmt.Sprintf("http://127.0.0.1:%s/healthz", strings.Split(s.InsecureServingInfo.Address, ":")[1])

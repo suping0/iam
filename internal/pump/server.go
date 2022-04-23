@@ -26,6 +26,7 @@ type pumpServer struct {
 	secInterval    int
 	omitDetails    bool
 	analyticsStore storage.AnalyticsStorage
+	// 保存不同的pump插件实现类
 	pumps          map[string]options.PumpConfig
 }
 

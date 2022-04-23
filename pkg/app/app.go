@@ -163,7 +163,7 @@ func NewApp(name string, basename string, opts ...Option) *App {
 	for _, o := range opts {
 		o(a)
 	}
-
+	// 基于Cobra构建命令行相关功能
 	a.buildCommand()
 
 	return a
@@ -191,14 +191,18 @@ func (a *App) buildCommand() {
 		}
 		cmd.SetHelpCommand(helpCommand(a.name))
 	}
-	if a.runFunc != nil {
+
+	if a.runFunc != nil {// 如果服务启动回调函数不为空
+		// 参数解析：包括参数合法性校验，配置自动补全等
 		cmd.RunE = a.runCommand
 	}
 
 	var namedFlagSets cliflag.NamedFlagSets
 	if a.options != nil {
+		// 获取分组后的flags
 		namedFlagSets = a.options.Flags()
 		fs := cmd.Flags()
+		// 将 namedFlagSets 中保存的 FlagSet 添加到 Cobra 应用框架中的 FlagSet 中。
 		for _, f := range namedFlagSets.FlagSets {
 			fs.AddFlagSet(f)
 		}
@@ -217,7 +221,9 @@ func (a *App) buildCommand() {
 		})
 	}
 
+	// 在 global 分组下添加 --version 和 --config 选项。
 	if !a.noVersion {
+		// 如果当前分组不存在，则创建global分组
 		verflag.AddFlags(namedFlagSets.FlagSet("global"))
 	}
 	if !a.noConfig {
@@ -253,7 +259,8 @@ func (a *App) runCommand(cmd *cobra.Command, args []string) error {
 		if err := viper.BindPFlags(cmd.Flags()); err != nil {
 			return err
 		}
-
+		// 我们再看应用执行阶段。这时会通过 viper.Unmarshal，将配置 Unmarshal 到 Options 变量中。
+		// 这样我们就可以使用 Options 变量中的值，来执行后面的业务逻辑。
 		if err := viper.Unmarshal(a.options); err != nil {
 			return err
 		}
@@ -269,6 +276,7 @@ func (a *App) runCommand(cmd *cobra.Command, args []string) error {
 		}
 	}
 	if a.options != nil {
+		// 判断选项是否可补全和打印，以及配置合法性校验
 		if err := a.applyOptionRules(); err != nil {
 			return err
 		}
@@ -282,16 +290,18 @@ func (a *App) runCommand(cmd *cobra.Command, args []string) error {
 }
 
 func (a *App) applyOptionRules() error {
+	// 配置自动补全默认值
 	if completeableOptions, ok := a.options.(CompleteableOptions); ok {
 		if err := completeableOptions.Complete(); err != nil {
 			return err
 		}
 	}
 
+	// 配置合法性校验
 	if errs := a.options.Validate(); len(errs) != 0 {
 		return errors.NewAggregate(errs)
 	}
-
+	// 打印选项(配置)内容
 	if printableOptions, ok := a.options.(PrintableOptions); ok && !a.silence {
 		log.Infof("%v Config: `%s`", progressMessage, printableOptions.String())
 	}

@@ -50,7 +50,7 @@ func (a AutoStrategy) AuthFunc() gin.HandlerFunc {
 
 			return
 		}
-
+		// AuthFunc函数会从Authorization Header中解析出认证方式是Basic还是Bearer。
 		switch authHeader[0] {
 		case "Basic":
 			operator.SetStrategy(a.basic)

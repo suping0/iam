@@ -71,6 +71,7 @@ ifndef V
 MAKEFLAGS += --no-print-directory
 endif
 
+# 每次执行make命令时都会执行，可以确保githooks都安装到 .git/hooks 目录下。
 # Copy githook scripts when execute makefile
 COPY_GITHOOK:=$(shell cp -f githooks/* .git/hooks/)
 

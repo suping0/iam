@@ -5,6 +5,9 @@
 # Build all by default, even if it's not first
 .DEFAULT_GOAL := all
 
+# 直接执行make 不指定target则会执行文件定义的所有的target
+# 将cover放在all目标的依赖中，并且位于build之前，也就是all: gen add-copyright format lint cover build。
+# 这样每次当我们执行make时，会自动进行代码测试，并计算单元测试覆盖率，如果覆盖率不达标，则停止构建；如果达标，继续进入下一步的构建流程。
 .PHONY: all
 all: gen add-copyright format lint cover build
 
@@ -55,9 +58,10 @@ export USAGE_OPTIONS
 # Targets
 
 ## build: Build source code for host platform.
-.PHONY: build
+.PHONY: build # 将build目标定义为伪目标。伪目标总是被执行
 build:
-	@$(MAKE) go.build
+	@$(MAKE) go.build # @表示不输出执行的指令；
+    #$(MAKE)变量表示当前make解释器的文件名。用于跨平台执行target。在当前平台执行make go.build
 
 ## build.multiarch: Build source code for multiple platforms. See option PLATFORMS.
 .PHONY: build.multiarch

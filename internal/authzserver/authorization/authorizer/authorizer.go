@@ -68,6 +68,7 @@ func (auth *Authorization) List(username string) ([]*ladon.DefaultPolicy, error)
 }
 
 // LogRejectedAccessRequest write rejected subject access to redis.
+// 记录授权日志中被拒绝的
 func (auth *Authorization) LogRejectedAccessRequest(r *ladon.Request, p ladon.Policies, d ladon.Policies) {
 	var conclusion string
 	if len(d) > 1 {
@@ -97,6 +98,8 @@ func (auth *Authorization) LogRejectedAccessRequest(r *ladon.Request, p ladon.Po
 }
 
 // LogGrantedAccessRequest write granted subject access to redis.
+// iam-authz-server是通过调用 LogGrantedAccessRequest 和 LogRejectedAccessRequest 函数来记录授权日志的。
+// 在记录授权日志时，会将授权日志写入 recordsChan channel中。LogGrantedAccessRequest函数代码如下：
 func (auth *Authorization) LogGrantedAccessRequest(r *ladon.Request, p ladon.Policies, d ladon.Policies) {
 	conclusion := fmt.Sprintf("policies %s allow access", joinPoliciesNames(d))
 	rstring, pstring, dstring := convertToString(r, p, d)

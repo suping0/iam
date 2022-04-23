@@ -89,8 +89,9 @@ func (o *UpdateOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, args []s
 	if len(args) == 0 {
 		return cmdutil.UsageErrorf(cmd, updateUsageErrStr)
 	}
-
+	// 获取非选项参数 name. 即example中的foo
 	o.Name = args[0]
+	// 调用SDK的iamclient客户端
 	o.iamclient, err = f.IAMClient()
 	if err != nil {
 		return err

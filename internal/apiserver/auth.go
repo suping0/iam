@@ -60,12 +60,15 @@ func newJWTAuth() middleware.AuthStrategy {
 		Key:              []byte(viper.GetString("jwt.key")),
 		Timeout:          viper.GetDuration("jwt.timeout"),
 		MaxRefresh:       viper.GetDuration("jwt.max-refresh"),
+		// 账号密码的认证
 		Authenticator:    authenticator(),
+		// 该函数用来在Basic认证成功之后，返回Token和Token的过期时间给调用者：
 		LoginResponse:    loginResponse(),
 		LogoutResponse: func(c *gin.Context, code int) {
 			c.JSON(http.StatusOK, nil)
 		},
 		RefreshResponse: refreshResponse(),
+		// PayloadFunc函数会设置JWT Token中Payload部分的 iss、aud、sub、identity字段，供后面使用。
 		PayloadFunc:     payloadFunc(),
 		IdentityHandler: func(c *gin.Context) interface{} {
 			claims := jwt.ExtractClaims(c)
@@ -126,20 +129,21 @@ func authenticator() func(c *gin.Context) (interface{}, error) {
 }
 
 func parseWithHeader(c *gin.Context) (loginInfo, error) {
+	// 获取`Authorization`头的值，并调用strings.SplitN函数，获取一个切片变量auth
 	auth := strings.SplitN(c.Request.Header.Get("Authorization"), " ", 2)
 	if len(auth) != 2 || auth[0] != "Basic" {
 		log.Errorf("get basic string from Authorization header failed")
 
 		return loginInfo{}, jwt.ErrFailedAuthentication
 	}
-
+	// 解码
 	payload, err := base64.StdEncoding.DecodeString(auth[1])
 	if err != nil {
 		log.Errorf("decode basic string: %s", err.Error())
 
 		return loginInfo{}, jwt.ErrFailedAuthentication
 	}
-
+	// 接到用户名和密码
 	pair := strings.SplitN(string(payload), ":", 2)
 	if len(pair) != 2 {
 		log.Errorf("parse payload failed")
@@ -153,6 +157,7 @@ func parseWithHeader(c *gin.Context) (loginInfo, error) {
 	}, nil
 }
 
+// parseWithBody则是调用了Gin的ShouldBindJSON函数，来从Body中解析出用户名和密码。
 func parseWithBody(c *gin.Context) (loginInfo, error) {
 	var login loginInfo
 	if err := c.ShouldBindJSON(&login); err != nil {
@@ -173,6 +178,7 @@ func refreshResponse() func(c *gin.Context, code int, token string, expire time.
 	}
 }
 
+// 该函数用来在Basic认证成功之后，返回Token和Token的过期时间给调用者：
 func loginResponse() func(c *gin.Context, code int, token string, expire time.Time) {
 	return func(c *gin.Context, code int, token string, expire time.Time) {
 		c.JSON(http.StatusOK, gin.H{
@@ -182,6 +188,7 @@ func loginResponse() func(c *gin.Context, code int, token string, expire time.Ti
 	}
 }
 
+// PayloadFunc函数会设置JWT Token中Payload部分的 iss、aud、sub、identity字段，供后面使用。
 func payloadFunc() func(data interface{}) jwt.MapClaims {
 	return func(data interface{}) jwt.MapClaims {
 		claims := jwt.MapClaims{

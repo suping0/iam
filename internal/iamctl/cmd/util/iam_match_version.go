@@ -38,6 +38,7 @@ var _ genericclioptions.RESTClientGetter = &MatchVersionFlags{}
 
 func (f *MatchVersionFlags) checkMatchingServerVersion() error {
 	f.checkServerVersion.Do(func() {
+		// 判断是否需要进行客户端和服务端版本匹配
 		if !f.RequireMatchedServerVersion {
 			return
 		}
