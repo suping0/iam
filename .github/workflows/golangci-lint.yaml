@@ -2,22 +2,26 @@
 # Use of this source code is governed by a MIT style
 # license that can be found in the LICENSE file.
 
+# name字段是 workflow 的名称。如果省略该字段，默认为当前 workflow 的文件名。
 name: golangci-lint
+# on 一个 workflow 的触发条件，决定了当前的 workflow 在什么时候被执行。
 on:
   push:
-    branchs:
+    branchs: # 指定触发事件时，我们可以限定分支或标签。
     - '*'
   pull_request:
     types: [opened, reopened]
+# workflow 文件的主体是jobs字段，表示要执行的一项或多项任务。
 jobs:
-  golangci:
-    name: lint
-    runs-on: ubuntu-latest
+  golangci: # 声明一个job
+    name: lint # job名称
+    runs-on: ubuntu-latest # runs-on字段指定运行所需要的虚拟机环境，它是必填字段。
+    # steps字段指定每个 Job 的运行步骤，可以包含一个或多个步骤。每个步骤都可以指定下面三个字段。
     steps:
-      - uses: actions/checkout@v2
-      - name: golangci-lint
+      - uses: actions/checkout@v2 # uses 可以引用别人已经创建的 actions，就是上面说的 actions 市场中的 actions。引用格式为userName/repoName@verison
+      - name: golangci-lint # 步骤名称；- 创建数据元素
         uses: golangci/golangci-lint-action@v2
-        with:
+        with: # with 指定actions的输入参数。每个输入参数都是一个键/值对。输入参数被设置为环境变量，该变量的前缀为 INPUT_，并转换为大写。
           # Optional: version of golangci-lint to use in form of v1.2 or v1.2.3 or `latest` to use the latest version
           version: v1.41.1
 
